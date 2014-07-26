@@ -55,7 +55,6 @@ class MySQLStorePipeLine(object):
             if e_index not in old_epi_dict or item['ed2k_link'] == old_epi_dict[e_index]:
                 item_tuple = (item['e_index'], item['show_id'], item['format'], item['season'], item['episode'], item['ed2k_link'])
                 items.append(item_tuple)
-        #print self.items
         return items
 
 
