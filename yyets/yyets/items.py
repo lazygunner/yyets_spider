@@ -8,6 +8,7 @@ from scrapy.item import Item, Field
 class YyetsItem(Item):
     # define the fields for your item here like:
     # name = Field()
+    e_index = Field()
     show_id = Field()
     format = Field()
     season = Field()
