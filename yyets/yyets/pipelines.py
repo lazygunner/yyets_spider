@@ -9,6 +9,7 @@ import pymysql
 import hashlib
 
 from scrapy.http import Request
+from spiders.episodes_spider import EpisodesSpider
 
 class YyetsPipeline(object):
     def process_item(self, item, spider):
@@ -59,6 +60,9 @@ class MySQLStorePipeLine(object):
 
 
     def close_spider(self, spider):
+
+        if spider.__class__  != EpisodesSpider:
+            return
 
         new_items = self._get_new_episodes(spider.show_id)
 

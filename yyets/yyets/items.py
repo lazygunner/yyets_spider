@@ -14,3 +14,14 @@ class YyetsItem(Item):
     season = Field()
     episode = Field()
     ed2k_link = Field()
+
+
+class ShowItem(Item):
+
+    show_id = Field()
+    show_name = Field()
+    created_time = Field()
+    updated_time = Field()
+    latest_season = Field()
+    latest_episode = Field()
+
