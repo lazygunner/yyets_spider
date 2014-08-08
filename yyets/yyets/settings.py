@@ -11,8 +11,9 @@ BOT_NAME = 'yyets'
 SPIDER_MODULES = ['yyets.spiders']
 NEWSPIDER_MODULE = 'yyets.spiders'
 
-ITEM_PIPELINES = {'yyets.pipelines.MySQLStorePipeLine':300,}
+ITEM_PIPELINES = {'yyets.pipelines.MySQLStorePipeLine':300, 'yyets.pipelines.AddToCeleryPipeLine':200}
 USER_AGENT = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36'
+LOG_FILE = 'scrapy.log'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'yyets (+http://www.yourdomain.com)'

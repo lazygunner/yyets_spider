@@ -25,3 +25,6 @@ class ShowItem(Item):
     latest_season = Field()
     latest_episode = Field()
 
+class ShowIDItem(Item):
+
+    show_id = Field()

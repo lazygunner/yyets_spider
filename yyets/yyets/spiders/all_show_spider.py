@@ -25,8 +25,6 @@ class AllShowSpider(Spider):
             else:
                 show_item['show_id'] = ''
             show_item['show_name'] = a.xpath('font//text()')[0].extract()
-            print show_item['show_id']
-            print show_item['show_name']
             yield show_item
 
 
