@@ -25,7 +25,7 @@ class AddToCeleryPipeLine(object):
 
 class MySQLStorePipeLine(object):
     def __init__(self):
-        self.conn = pymysql.connect(user='gunner', passwd='17097448ak47', db='yyets', host='rdszbq63qqmzeya.mysql.rds.aliyuncs.com',  charset="utf8", use_unicode=True)
+        self.conn = pymysql.connect(user='', passwd='', db='', host='',  charset="utf8", use_unicode=True)
         self.cursor = self.conn.cursor()
         self.items = []
 
