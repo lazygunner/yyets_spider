@@ -6,7 +6,7 @@ class MySQLDB(object):
         pass
 
     def get_cursor(self):
-        conn = pymysql.connect(user='gunner', passwd='17097448ak47', db='yyets', host='rdszbq63qqmzeya.mysql.rds.aliyuncs.com',  charset="utf8", use_unicode=True)
+        conn = pymysql.connect(user='', passwd='', db='', host='',  charset="utf8", use_unicode=True)
         return conn.cursor()
 
 class ShowsDB(MySQLDB):
