@@ -27,7 +27,7 @@ class EpisodesSpider(InitSpider):
         self.allowed_domains = ['yyets.com']
 
         self.show_id = quote(show_id.encode('utf-8'))
-        self.start_urls.append("http://www.yyets.com/resource/" + self.show_id)
+        self.start_urls = ["http://www.yyets.com/resource/" + self.show_id]
 
     rules = (
         Rule(SgmlLinkExtractor(),
@@ -49,6 +49,7 @@ class EpisodesSpider(InitSpider):
         if rsp['status'] == 1:
             self.log("Successfully logged in. Let's start crawling!")
              # Now the crawling can begin..
+            print self.start_urls
             return Request(url=self.start_urls[0], callback=self.parse_items)
         else:
             self.log("%s", rsp['info'])
@@ -59,6 +60,7 @@ class EpisodesSpider(InitSpider):
         #format='.*?'
         #p = re.compile(r'<li.*?itemid="(\d*)" format="(' + format + ')">.*?title=".*?\.[sS](\d{2})[eE](\d{2}).*?type="ed2k"\shref="(.*?)".*?</li>')
         #episodes = p.findall(html)
+        p = re.compile(r'\.[sS](\d*)[eE](\d*)\.')
         sel = Selector(response)
         for ul in sel.xpath('//ul[@class="resod_list"]'):
             season = ul.xpath('@season').extract()
@@ -76,7 +78,13 @@ class EpisodesSpider(InitSpider):
                 item['season'] = season
                 ed2k = li.xpath('div/div/a[@type="ed2k"]/@href').extract()
                 item['ed2k_link'] = ed2k[0] if ed2k else None
-                item['e_index'] = '%d%02d%s' % (item['season'], item['episode'], item['format'])
+                #Correct episode if it's larger than 100
+                if item['ed2k_link']:
+                    ep = p.findall(item['ed2k_link'])
+                    if ep and len(ep[0]) == 2:
+                        item['season'] = int(ep[0][0])
+                        item['episode'] = int(ep[0][1])
+                item['e_index'] = '%s:%d:%d:%s' % (item['show_id'], item['season'], item['episode'], item['format'])
                 yield item
 
 

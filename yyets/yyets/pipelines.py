@@ -12,6 +12,8 @@ from datetime import datetime
 from scrapy.http import Request
 from spiders.episodes_spider import EpisodesSpider
 from tasks import crawl_show
+import logging
+logging.basicConfig(filename='pipeline.log',level=logging.DEBUG)
 
 class YyetsPipeline(object):
     def process_item(self, item, spider):
@@ -38,33 +40,43 @@ class MySQLStorePipeLine(object):
         #    return item
         self.items.append(item)
         return item
+
     def open_spider(self, spider):
         pass
 
     def __get_new_episodes(self, show_id):
-        rows = self.cursor.execute("""SELECT 'e_index', 'ed2k_link' FROM episodes WHERE show_id = %s""", show_id)
-        old_episodes = self.cursor.fetchall()
+        try:
+            rows = self.cursor.execute("""SELECT e_index, ed2k_link FROM episodes WHERE show_id = %s""", show_id)
+            old_episodes = self.cursor.fetchall()
+        except pymysql.Error, e:
+            print "Error %d: %s" % (e.args[0], e.args[1])
         old_epi_dict = {}
         items = []
         l_e = 0
         l_s = 0
+        l_s_e = 0
         for i in old_episodes:
             old_epi_dict[i[0]] = i[1]
         for item in self.items:
             e_index = item['e_index']
 
-            if e_index not in old_epi_dict or item['ed2k_link'] == old_epi_dict[e_index]:
-                item_tuple = (item['e_index'], item['show_id'], item['format'], item['season'], item['episode'], item['ed2k_link'])
+            if e_index not in old_epi_dict or item['ed2k_link'] != old_epi_dict[e_index]:
+                item_tuple = (item['e_index'], item['show_id'], item['format'], item['season'], item['episode'], item['ed2k_link'], item['ed2k_link'])
                 items.append(item_tuple)
-                l_e = item['episode'] if item['episode'] > l_e else l_e
-                l_s = item['season'] if item['season'] > l_s else l_s
+                if item['season'] * 1000 + item['episode'] > l_s_e:
+                    l_s = item['season']
+                    l_e = item['episode']
+                    l_s_e = l_s * 1000 + l_e
         return (items, l_e, l_s)
 
     def _handle_episodes(self, show_id):
         new_items, l_e, l_s = self.__get_new_episodes(show_id)
-
+        if len(new_items) == 0:
+            return
+        logging.info('%s %s %s %s', show_id, l_e, l_s, len(new_items))
         try:
-            self.cursor.executemany("""REPLACE INTO episodes (e_index, show_id, format, season, episode, ed2k_link) VALUES (%s, %s, %s, %s, %s, %s)""", new_items)
+            self.cursor.executemany("""INSERT INTO episodes (e_index, show_id, format, season, episode, ed2k_link) VALUES (%s, %s, %s, %s, %s, %s) \
+                    ON DUPLICATE KEY UPDATE ed2k_link=%s""", new_items)
             self.conn.commit()
             self.cursor.execute("""UPDATE shows SET updated_time=%s, latest_season=%s, latest_episode=%s WHERE show_id=%s""", (datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"), l_s, l_e, show_id))
             self.conn.commit()
@@ -77,18 +89,17 @@ class MySQLStorePipeLine(object):
         date = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
 
         for show in self.items:
-            show_tuple = (show['show_id'], show['show_name'], date, date, 0, 0)
+            show_tuple = (show['show_id'], show['show_name'], date, date, 0, 0, date)
             shows.append(show_tuple)
 
         try:
-            self.cursor.executemany("""REPLACE INTO shows (show_id, show_name, created_time, updated_time, latest_season, latest_episode) \
-                    VALUES (%s, %s, %s, %s, %s, %s)""", shows)
+            self.cursor.executemany("""INSERT INTO shows (show_id, show_name, created_time, updated_time, latest_season, latest_episode) \
+                    VALUES (%s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_time=%s""", shows)
             self.conn.commit()
         except pymysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
 
     def close_spider(self, spider):
-
         if spider.name  == 'episodes':
             self._handle_episodes(spider.show_id)
         elif spider.name == 'all_show':

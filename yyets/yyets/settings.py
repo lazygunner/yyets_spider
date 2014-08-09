@@ -11,7 +11,7 @@ BOT_NAME = 'yyets'
 SPIDER_MODULES = ['yyets.spiders']
 NEWSPIDER_MODULE = 'yyets.spiders'
 
-ITEM_PIPELINES = {'yyets.pipelines.MySQLStorePipeLine':300, 'yyets.pipelines.AddToCeleryPipeLine':200}
+ITEM_PIPELINES = {'yyets.pipelines.AddToCeleryPipeLine':200, 'yyets.pipelines.MySQLStorePipeLine':300}
 USER_AGENT = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.131 Safari/537.36'
 LOG_FILE = 'scrapy.log'
 
