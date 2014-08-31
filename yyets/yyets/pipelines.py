@@ -4,18 +4,20 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
-import sys
 import pymysql
-import hashlib
 from datetime import datetime
 
 from scrapy.http import Request
 from spiders.episodes_spider import EpisodesSpider
 from tasks import crawl_show
+from .settings import DB_SETTINGS
+
 
 class YyetsPipeline(object):
+
     def process_item(self, item, spider):
         return item
+
 
 class AddToCeleryPipeLine(object):
     def process_item(self, item, spider):
@@ -23,9 +25,17 @@ class AddToCeleryPipeLine(object):
             crawl_show.delay(item['show_id'])
         return item
 
+
 class MySQLStorePipeLine(object):
     def __init__(self):
-        self.conn = pymysql.connect(user='', passwd='', db='', host='',  charset="utf8", use_unicode=True)
+        self.conn = pymysql.connect(user=DB_SETTINGS['user'],
+                                    passwd=DB_SETTINGS['passwd'],
+                                    db=DB_SETTINGS['db'],
+                                    host=DB_SETTINGS['host'],
+                                    port=DB_SETTINGS['port'],
+                                    charset="utf8",
+                                    use_unicode=True)
+
         self.cursor = self.conn.cursor()
         self.items = []
 
@@ -42,7 +52,7 @@ class MySQLStorePipeLine(object):
         pass
 
     def __get_new_episodes(self, show_id):
-        rows = self.cursor.execute("""SELECT 'e_index', 'ed2k_link' FROM episodes WHERE show_id = %s""", show_id)
+        self.cursor.execute("""SELECT 'e_index', 'ed2k_link' FROM episodes WHERE show_id = %s""", show_id)
         old_episodes = self.cursor.fetchall()
         old_epi_dict = {}
         items = []
@@ -89,7 +99,7 @@ class MySQLStorePipeLine(object):
 
     def close_spider(self, spider):
 
-        if spider.name  == 'episodes':
+        if spider.name == 'episodes':
             self._handle_episodes(spider.show_id)
         elif spider.name == 'all_show':
             self._handle_all_show()
