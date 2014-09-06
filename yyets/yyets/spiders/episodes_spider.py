@@ -62,6 +62,49 @@ class EpisodesSpider(InitSpider):
         #episodes = p.findall(html)
         p = re.compile(r'\.[sS](\d*)[eE](\d*)\.')
         sel = Selector(response)
+
+        show_info = {}
+
+        for li in sel.xpath('//ul[@class="r_d_info"]/li'):
+            spans = li.xpath('span/text()').extract()
+            if len(spans) > 0:
+                span = spans[0]
+            else:
+                continue
+            if span == u'英文：':
+                strongs = li.xpath('strong/text()').extract()
+                strong = strongs[0] if strongs else ''
+                show_info['english'] = strong
+            elif span == u'别名：':
+                show_info['other_name'] = li.xpath('text()').extract()[0].strip(' ')
+            elif span == u'编剧：':
+                writers = []
+                hrefs = li.xpath('a')
+                for href in hrefs:
+                    h = href.xpath('@href').extract()[0]
+                    name = href.xpath('text()').extract()[0]
+                    writers.append((h, name))
+                show_info['writers'] = writers
+            elif span == u'演员：':
+                actors = []
+                hrefs = li.xpath('a')
+                for href in hrefs:
+                    h = href.xpath('@href').extract()[0]
+                    name = href.xpath('text()').extract()[0]
+                    actors.append((h, name))
+                show_info['actors'] = actors
+            elif span == u'导演：':
+                directors = []
+                hrefs = li.xpath('a')
+                for href in hrefs:
+                    h = href.xpath('@href').extract()[0]
+                    name = href.xpath('text()').extract()[0]
+                    directors.append((h, name))
+                show_info['directors'] = directors
+#TODO add to redis
+        print show_info
+
+
         for ul in sel.xpath('//ul[@class="resod_list"]'):
             season = ul.xpath('@season').extract()
             season = int(season[0]) if season else None
@@ -86,7 +129,6 @@ class EpisodesSpider(InitSpider):
                         item['episode'] = int(ep[0][1])
                 item['e_index'] = '%s:%d:%d:%s' % (item['show_id'], item['season'], item['episode'], item['format'])
                 yield item
-
 
 
 
