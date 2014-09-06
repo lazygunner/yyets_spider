@@ -12,6 +12,8 @@ from urllib2 import quote
 import json
 from yyets.items import YyetsItem
 import re
+import redis
+from yyets.settings import CACHE_SETTINGS, YYETS_SETTINGS
 
 class EpisodesSpider(InitSpider):
     name = "episodes"
@@ -21,8 +23,9 @@ class EpisodesSpider(InitSpider):
     login_page = 'http://www.yyets.com/user/login/ajaxLogin'
 
     def __init__(self, show_id):
-        self.username = 'gunnerak'
-        self.password = '880420'
+        self.username = YYETS_SETTINGS['username']
+        self.password = YYETS_SETTINGS['password']
+        self.redis_conn = redis.Redis(CACHE_SETTINGS['host'], CACHE_SETTINGS['port'], CACHE_SETTINGS['db'])
 
         self.allowed_domains = ['yyets.com']
 
@@ -63,46 +66,53 @@ class EpisodesSpider(InitSpider):
         p = re.compile(r'\.[sS](\d*)[eE](\d*)\.')
         sel = Selector(response)
 
-        show_info = {}
+        cache_name = "%s|%s" % ('show_info', self.show_id)
+        show_info = self.redis_conn.get(cache_name)
+        if not show_info or show_info == 'None':
 
-        for li in sel.xpath('//ul[@class="r_d_info"]/li'):
-            spans = li.xpath('span/text()').extract()
-            if len(spans) > 0:
-                span = spans[0]
-            else:
-                continue
-            if span == u'英文：':
-                strongs = li.xpath('strong/text()').extract()
-                strong = strongs[0] if strongs else ''
-                show_info['english'] = strong
-            elif span == u'别名：':
-                show_info['other_name'] = li.xpath('text()').extract()[0].strip(' ')
-            elif span == u'编剧：':
-                writers = []
-                hrefs = li.xpath('a')
-                for href in hrefs:
-                    h = href.xpath('@href').extract()[0]
-                    name = href.xpath('text()').extract()[0]
-                    writers.append((h, name))
-                show_info['writers'] = writers
-            elif span == u'演员：':
-                actors = []
-                hrefs = li.xpath('a')
-                for href in hrefs:
-                    h = href.xpath('@href').extract()[0]
-                    name = href.xpath('text()').extract()[0]
-                    actors.append((h, name))
-                show_info['actors'] = actors
-            elif span == u'导演：':
-                directors = []
-                hrefs = li.xpath('a')
-                for href in hrefs:
-                    h = href.xpath('@href').extract()[0]
-                    name = href.xpath('text()').extract()[0]
-                    directors.append((h, name))
-                show_info['directors'] = directors
-#TODO add to redis
-        print show_info
+            show_info = {}
+            for li in sel.xpath('//ul[@class="r_d_info"]/li'):
+                spans = li.xpath('span/text()').extract()
+                if len(spans) > 0:
+                    span = spans[0]
+                else:
+                    continue
+                if span == u'英文：':
+                    strongs = li.xpath('strong/text()').extract()
+                    strong = strongs[0] if strongs else ''
+                    show_info['english_name'] = strong
+                elif span == u'别名：':
+                    show_info['other_name'] = li.xpath('text()').extract()[0].strip(' ')
+                elif span == u'编剧：':
+                    writers = []
+                    hrefs = li.xpath('a')
+                    for href in hrefs:
+                        h = href.xpath('@href').extract()[0]
+                        name = href.xpath('text()').extract()[0]
+                        writers.append(name)
+                    show_info['writers'] = writers
+                elif span == u'演员：':
+                    actors = []
+                    hrefs = li.xpath('a')
+                    for href in hrefs:
+                        h = href.xpath('@href').extract()[0]
+                        name = href.xpath('text()').extract()[0]
+                        actors.append(name)
+                    show_info['actors'] = actors
+                elif span == u'导演：':
+                    directors = []
+                    hrefs = li.xpath('a')
+                    for href in hrefs:
+                        h = href.xpath('@href').extract()[0]
+                        name = href.xpath('text()').extract()[0]
+                        directors.append(name)
+                    show_info['directors'] = directors
+                elif span == u'播出：':
+                    show_info['show_type'] = li.xpath('text()').extract()[1].split('/')
+
+            self.redis_conn[cache_name] = json.dumps(show_info)
+            print show_info
+
 
 
         for ul in sel.xpath('//ul[@class="resod_list"]'):

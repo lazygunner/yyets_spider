@@ -11,8 +11,11 @@ from scrapy.http import Request
 from spiders.episodes_spider import EpisodesSpider
 from tasks import crawl_show
 import logging
+import redis
+import json
+from .settings import DB_SETTINGS, CACHE_SETTINGS
+
 logging.basicConfig(filename='pipeline.log',level=logging.DEBUG)
-from .settings import DB_SETTINGS
 
 
 class YyetsPipeline(object):
@@ -39,6 +42,7 @@ class MySQLStorePipeLine(object):
                                     use_unicode=True)
 
         self.cursor = self.conn.cursor()
+        self.redis_conn = redis.Redis(CACHE_SETTINGS['host'], CACHE_SETTINGS['port'], CACHE_SETTINGS['db'])
         self.items = []
 
     def process_item(self, item, spider):
@@ -88,7 +92,27 @@ class MySQLStorePipeLine(object):
             self.cursor.executemany("""INSERT INTO episodes (e_index, show_id, format, season, episode, ed2k_link) VALUES (%s, %s, %s, %s, %s, %s) \
                     ON DUPLICATE KEY UPDATE ed2k_link=%s""", new_items)
             self.conn.commit()
-            self.cursor.execute("""UPDATE shows SET updated_time=%s, latest_season=%s, latest_episode=%s WHERE show_id=%s""", (datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"), l_s, l_e, show_id))
+            cache_name = '%s|%s' % ('show_info', show_id)
+            show_info_str = self.redis_conn.get(cache_name)
+
+            query_str = """UPDATE shows SET updated_time=%s, latest_season=%s, latest_episode=%s"""
+
+            if show_info_str and show_info_str != 'None':
+                show_info = json.loads(show_info_str)
+                info_str = ''
+                for key, value in show_info.items():
+                    value_str = ''
+                    if isinstance(value, list):
+                        for v in value:
+                            value_str += '%s ' % v
+                    else:
+                        value_str = value
+                    info_str += ',%s="%s"' % (key, value_str)
+                query_str += info_str
+
+            query_str += ' WHERE show_id=%s'
+            self.cursor.execute(query_str,
+                                (datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"), l_s, l_e, show_id))
             self.conn.commit()
         except pymysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
