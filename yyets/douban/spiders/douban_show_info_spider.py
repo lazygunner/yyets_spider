@@ -15,7 +15,6 @@ class DoubanShowInfoSpider(Spider):
 
     def parse(self, response):
 
-        import pdb;pdb.set_trace()
         show_info_item = ShowInfoItem()
         sel = Selector(response)
         for result in sel.xpath('//div[@class="result-list"]'):

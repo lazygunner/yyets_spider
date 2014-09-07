@@ -87,13 +87,14 @@ class MySQLStorePipeLine(object):
 
     def _handle_episodes(self, show_id):
         new_items, l_e, l_s = self.__get_new_episodes(show_id)
-        if len(new_items) == 0:
-            return
-        logging.info('%s %s %s %s', show_id, l_e, l_s, len(new_items))
         try:
-            self.cursor.executemany("""INSERT INTO episodes (e_index, show_id, format, season, episode, ed2k_link) VALUES (%s, %s, %s, %s, %s, %s) \
+            if len(new_items) > 0:
+                logging.info('%s %s %s %s', show_id, l_e, l_s, len(new_items))
+
+                self.cursor.executemany("""INSERT INTO episodes (e_index, show_id, format, season, episode, ed2k_link) VALUES (%s, %s, %s, %s, %s, %s) \
                     ON DUPLICATE KEY UPDATE ed2k_link=%s""", new_items)
-            self.conn.commit()
+                self.conn.commit()
+
             cache_name = '%s|%s' % ('show_info', show_id)
             show_info_str = self.redis_conn.get(cache_name)
 
@@ -119,7 +120,6 @@ class MySQLStorePipeLine(object):
 
         except pymysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
-, spider.name
 
     def _handle_all_show(self):
         shows = []
