@@ -1,7 +1,9 @@
-
+#encoding:utf-8
 from scrapy.crawler import Crawler
 from scrapy.conf import settings
 from yyets.spiders.episodes_spider import EpisodesSpider
+from douban.spiders.douban_show_info_spider import DoubanShowInfoSpider
+from douban.spiders.douban_show_pic_spider import DoubanShowPicSpider
 from scrapy import log, project, signals
 from twisted.internet import reactor
 from billiard import Process
@@ -12,7 +14,6 @@ class UrlCrawlerScript(Process):
         Process.__init__(self)
         settings = get_project_settings()
         self.crawler = Crawler(settings)
-
         if not hasattr(project, 'crawler'):
             self.crawler.install()
             self.crawler.configure()
@@ -25,6 +26,7 @@ class UrlCrawlerScript(Process):
         self.crawler.start()
         reactor.run()
 
+
 class EpisodesCrawler(object):
 
     def crawl(self, show_id):
@@ -34,7 +36,27 @@ class EpisodesCrawler(object):
         crawler.join()
 
 
+class ShowInfoCrawler(object):
+
+    def crawl(self, show_name, show_id):
+        spider = DoubanShowInfoSpider(show_name, show_id)
+        crawler = UrlCrawlerScript(spider)
+        crawler.start()
+        crawler.join()
+
+
+class ShowPicCrawler(object):
+
+    def crawl(self, subject_id, show_id):
+        spider = DoubanShowPicSpider(subject_id, show_id)
+        crawler = UrlCrawlerScript(spider)
+        crawler.start()
+        crawler.join()
+
 if __name__ == "__main__":
-    c = EpisodesCrawler()
-    c.crawl('32142')
+    c = ShowInfoCrawler()
+    c.crawl(u'守望尘世', '32227')
+    #c = EpisodesCrawler()
+    #c.crawl('32142')
+
 

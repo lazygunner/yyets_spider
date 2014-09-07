@@ -9,7 +9,7 @@ from datetime import datetime
 
 from scrapy.http import Request
 from spiders.episodes_spider import EpisodesSpider
-from tasks import crawl_show
+from tasks import crawl_show, crawl_show_info
 import logging
 import redis
 import json
@@ -52,7 +52,9 @@ class MySQLStorePipeLine(object):
         #        return item
         #except:
         #    return item
-        self.items.append(item)
+        print 'show_spider:', spider.name
+        if spider.name in ['episodes', 'all_show']:
+            self.items.append(item)
         return item
 
     def open_spider(self, spider):
@@ -114,9 +116,10 @@ class MySQLStorePipeLine(object):
             self.cursor.execute(query_str,
                                 (datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"), l_s, l_e, show_id))
             self.conn.commit()
+
         except pymysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
-
+, spider.name
 
     def _handle_all_show(self):
         shows = []
@@ -125,11 +128,14 @@ class MySQLStorePipeLine(object):
         for show in self.items:
             show_tuple = (show['show_id'], show['show_name'], date, date, 0, 0, date)
             shows.append(show_tuple)
+            #print 'add show_info task to celery:', show['show_name'], show['show_id']
+            #crawl_show_info.delay(show['show_name'], show['show_id'])
 
         try:
             self.cursor.executemany("""INSERT INTO shows (show_id, show_name, created_time, updated_time, latest_season, latest_episode) \
                     VALUES (%s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_time=%s""", shows)
             self.conn.commit()
+
         except pymysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
 
