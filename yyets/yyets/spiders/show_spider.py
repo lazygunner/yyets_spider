@@ -1,8 +1,11 @@
+import sys
+import os
+path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(path+'/..')
 from scrapy.spider import Spider
 from urllib2 import quote
 import json
 
-from tasks import crawl_show
 
 class ShowSpider(Spider):
     name = "show"
@@ -38,6 +41,7 @@ class ShowSpider(Spider):
         for show in shows:
             show_id = show['itemid']
             print show
+            from tasks import crawl_show
             crawl_show.delay(show_id)
         #show_item = Show.objects(show_id=show_id).first()
         #if show_item == None:

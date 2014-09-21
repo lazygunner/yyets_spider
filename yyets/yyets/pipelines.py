@@ -33,15 +33,21 @@ class AddToCeleryPipeLine(object):
 
 class MySQLStorePipeLine(object):
     def __init__(self):
-        self.conn = pymysql.connect(user=DB_SETTINGS['user'],
+        self.conn = None
+        self.cursor = None
+        try:
+            self.conn = pymysql.connect(user=DB_SETTINGS['user'],
                                     passwd=DB_SETTINGS['passwd'],
                                     db=DB_SETTINGS['db'],
                                     host=DB_SETTINGS['host'],
                                     port=DB_SETTINGS['port'],
                                     charset="utf8",
                                     use_unicode=True)
+            self.cursor = self.conn.cursor()
 
-        self.cursor = self.conn.cursor()
+        except:
+            return
+
         self.redis_conn = redis.Redis(CACHE_SETTINGS['host'], CACHE_SETTINGS['port'], CACHE_SETTINGS['db'])
         self.items = []
 
@@ -160,7 +166,8 @@ class MySQLStorePipeLine(object):
         elif spider.name == 'all_show':
             self._handle_all_show()
 
-        self.cursor.close()
-        self.conn.close()
+        if self.cursor:
+            self.cursor.close()
+            self.conn.close()
 
 

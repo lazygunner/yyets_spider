@@ -1,9 +1,10 @@
 from celery import Celery
 from crawler import EpisodesCrawler, ShowInfoCrawler, ShowPicCrawler
 
-crawl_show_task = Celery('crawl_show', broker='amqp://guest@localhost//')
-crawl_show_info_task = Celery('crawl_show_info', broker='amqp://guest@localhost//')
-crawl_show_pic_task = Celery('crawl_show_pic', broker='amqp://guest@localhost//')
+broker = 'amqp://guest@115.28.223.15//'
+crawl_show_task = Celery('crawl_show', broker=broker)
+crawl_show_info_task = Celery('crawl_show_info', broker=broker)
+crawl_show_pic_task = Celery('crawl_show_pic', broker=broker)
 
 @crawl_show_task.task
 def crawl_show(show_id):

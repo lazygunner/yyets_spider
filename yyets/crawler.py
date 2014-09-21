@@ -2,6 +2,7 @@
 from scrapy.crawler import Crawler
 from scrapy.conf import settings
 from yyets.spiders.episodes_spider import EpisodesSpider
+from yyets.spiders.show_spider import ShowSpider
 from douban.spiders.douban_show_info_spider import DoubanShowInfoSpider
 from douban.spiders.douban_show_pic_spider import DoubanShowPicSpider
 from scrapy import log, project, signals
@@ -53,9 +54,18 @@ class ShowPicCrawler(object):
         crawler.start()
         crawler.join()
 
+
+class ShowCrawler(object):
+
+    def crawl(self, show_name):
+        spider = ShowSpider(show_name)
+        crawler = UrlCrawlerScript(spider)
+        crawler.start()
+        crawler.join()
+
 if __name__ == "__main__":
-    c = ShowInfoCrawler()
-    c.crawl(u'守望尘世', '32227')
+    c = ShowCrawler()
+    c.crawl(u'守望尘世')
     #c = EpisodesCrawler()
     #c.crawl('32142')
 
