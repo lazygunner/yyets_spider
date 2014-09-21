@@ -52,7 +52,6 @@ class MySQLStorePipeLine(object):
         #        return item
         #except:
         #    return item
-        print 'show_spider:', spider.name
         if spider.name in ['episodes', 'all_show']:
             self.items.append(item)
         return item
@@ -79,10 +78,10 @@ class MySQLStorePipeLine(object):
             if e_index not in old_epi_dict or item['ed2k_link'] != old_epi_dict[e_index]:
                 item_tuple = (item['e_index'], item['show_id'], item['format'], item['season'], item['episode'], item['ed2k_link'], item['ed2k_link'])
                 items.append(item_tuple)
-                if item['season'] * 1000 + item['episode'] > l_s_e:
-                    l_s = item['season']
-                    l_e = item['episode']
-                    l_s_e = l_s * 1000 + l_e
+            if item['season'] * 1000 + item['episode'] > l_s_e:
+                l_s = item['season']
+                l_e = item['episode']
+                l_s_e = l_s * 1000 + l_e
         return (items, l_e, l_s)
 
     def _handle_episodes(self, show_id):
@@ -98,8 +97,10 @@ class MySQLStorePipeLine(object):
             cache_name = '%s|%s' % ('show_info', show_id)
             show_info_str = self.redis_conn.get(cache_name)
 
-            query_str = """UPDATE shows SET updated_time=%s, latest_season=%s, latest_episode=%s"""
-
+            print 'update show:%s' % show_id, show_info_str
+            update_str = ''
+            key_str = 'show_id, created_time, updated_time'
+            val_str = '%s,%s,%s'
             if show_info_str and show_info_str != 'None':
                 show_info = json.loads(show_info_str)
                 info_str = ''
@@ -111,11 +112,25 @@ class MySQLStorePipeLine(object):
                     else:
                         value_str = value
                     info_str += ',%s="%s"' % (key, value_str)
-                query_str += info_str
+                    key_str += ',%s' % key
+                    val_str += ',"%s"' %value_str
+                update_str += info_str
 
-            query_str += ' WHERE show_id=%s'
-            self.cursor.execute(query_str,
-                                (datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"), l_s, l_e, show_id))
+            query_str = """INSERT INTO shows (""" + key_str +\
+                    """) VALUES (""" + val_str +\
+                    """) ON DUPLICATE KEY UPDATE updated_time=%s, latest_season=%s, latest_episode=%s""" + update_str
+
+            print 'query str:%s' % query_str
+            now = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"),
+            self.cursor.execute(
+                query_str,
+                (show_id,
+                now,
+                now,
+                now,
+                l_s,
+                l_e
+            ))
             self.conn.commit()
 
         except pymysql.Error, e:
@@ -130,7 +145,7 @@ class MySQLStorePipeLine(object):
             shows.append(show_tuple)
             #print 'add show_info task to celery:', show['show_name'], show['show_id']
             #crawl_show_info.delay(show['show_name'], show['show_id'])
-
+            print 'new show:', show_tuple
         try:
             self.cursor.executemany("""INSERT INTO shows (show_id, show_name, created_time, updated_time, latest_season, latest_episode) \
                     VALUES (%s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE updated_time=%s""", shows)

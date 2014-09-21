@@ -71,6 +71,14 @@ class EpisodesSpider(InitSpider):
         if not show_info or show_info == 'None':
 
             show_info = {}
+            tmp_show_name = sel.xpath('//h2[@class="tv"]/strong/text()').extract()
+            if len(tmp_show_name) > 0:
+                snp = re.compile(u'\u300a(.*?)\u300b', re.UNICODE)
+                tmp_name = snp.findall(tmp_show_name[0])
+                if len(tmp_name) > 0:
+                    show_info['show_name'] = tmp_name[0]
+                else:
+                    show_info['show_name'] = tmp_show_name[0]
             for li in sel.xpath('//ul[@class="r_d_info"]/li'):
                 spans = li.xpath('span/text()').extract()
                 if len(spans) > 0:
@@ -91,7 +99,7 @@ class EpisodesSpider(InitSpider):
                         name = href.xpath('text()').extract()[0]
                         writers.append(name)
                     show_info['writers'] = writers
-                elif span == u'演员：':
+                elif span == u'主演：':
                     actors = []
                     hrefs = li.xpath('a')
                     for href in hrefs:
@@ -111,7 +119,6 @@ class EpisodesSpider(InitSpider):
                     show_info['show_type'] = li.xpath('text()').extract()[1].split('/')
 
             self.redis_conn[cache_name] = json.dumps(show_info)
-            print show_info
 
 
 
