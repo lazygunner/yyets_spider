@@ -5,14 +5,17 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
 import pymysql
+import logging
+import redis
+import json
+from urllib import quote
+import requests
+
 from datetime import datetime
 
 from scrapy.http import Request
 from spiders.episodes_spider import EpisodesSpider
 from tasks import crawl_show, crawl_show_info
-import logging
-import redis
-import json
 from .settings import DB_SETTINGS, CACHE_SETTINGS
 
 logging.basicConfig(filename='pipeline.log',level=logging.DEBUG)
@@ -50,6 +53,7 @@ class MySQLStorePipeLine(object):
 
         self.redis_conn = redis.Redis(CACHE_SETTINGS['host'], CACHE_SETTINGS['port'], CACHE_SETTINGS['db'])
         self.items = []
+        self.vod_list = {'urls':[]}
 
     def process_item(self, item, spider):
         #try:
@@ -76,6 +80,7 @@ class MySQLStorePipeLine(object):
         l_e = 0
         l_s = 0
         l_s_e = 0
+        vod_id = 0
         for i in old_episodes:
             old_epi_dict[i[0]] = i[1]
         for item in self.items:
@@ -84,6 +89,15 @@ class MySQLStorePipeLine(object):
             if e_index not in old_epi_dict or item['ed2k_link'] != old_epi_dict[e_index]:
                 item_tuple = (item['e_index'], item['show_id'], item['format'], item['season'], item['episode'], item['ed2k_link'], item['ed2k_link'])
                 items.append(item_tuple)
+                vod_url = item['ed2k_link']
+                vod_names = vod_url.split('|')
+                if len(vod_names) > 0:
+                    vod_name = quote(vod_names[2])
+                else:
+                    vod_name = 'error'
+                self.vod_list['urls'].append({'id':vod_id, 'url':vod_url, 'name':vod_name})
+                vod_id += 1
+
             if item['season'] * 1000 + item['episode'] > l_s_e:
                 l_s = item['season']
                 l_e = item['episode']
@@ -99,6 +113,10 @@ class MySQLStorePipeLine(object):
                 self.cursor.executemany("""INSERT INTO episodes (e_index, show_id, format, season, episode, ed2k_link) VALUES (%s, %s, %s, %s, %s, %s) \
                     ON DUPLICATE KEY UPDATE ed2k_link=%s""", new_items)
                 self.conn.commit()
+
+                url = 'http://i.vod.xunlei.com/req_add_record?from=ext_list&platform=0&userid=29438321&sessionid=00C08C0F32995E802B348036B897411D0CB240BA40493677B6C9B69C3434EDCF9F7245B5C8E6E34A0E1C7B356AA3C6BC2522348A1ED7CEAA8F300B9081063710'
+                r = request.post(url, data=json.dumps(self.vod_list))
+                print r.text
 
             cache_name = '%s|%s' % ('show_info', show_id)
             show_info_str = self.redis_conn.get(cache_name)
