@@ -8,7 +8,6 @@ import pymysql
 import logging
 import redis
 import json
-from urllib import quote
 import requests
 
 from datetime import datetime
@@ -92,7 +91,7 @@ class MySQLStorePipeLine(object):
                 vod_url = item['ed2k_link']
                 vod_names = vod_url.split('|')
                 if len(vod_names) > 0:
-                    vod_name = quote(vod_names[2])
+                    vod_name = vod_names[2]
                 else:
                     vod_name = 'error'
                 self.vod_list['urls'].append({'id':vod_id, 'url':vod_url, 'name':vod_name})
@@ -115,7 +114,7 @@ class MySQLStorePipeLine(object):
                 self.conn.commit()
 
                 url = 'http://i.vod.xunlei.com/req_add_record?from=ext_list&platform=0&userid=29438321&sessionid=00C08C0F32995E802B348036B897411D0CB240BA40493677B6C9B69C3434EDCF9F7245B5C8E6E34A0E1C7B356AA3C6BC2522348A1ED7CEAA8F300B9081063710'
-                r = request.post(url, data=json.dumps(self.vod_list))
+                r = requests.post(url, data=json.dumps(self.vod_list))
                 print r.text
 
             cache_name = '%s|%s' % ('show_info', show_id)
