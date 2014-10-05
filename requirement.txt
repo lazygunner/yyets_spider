@@ -22,8 +22,10 @@ pytz==2014.4
 queuelib==1.1.1
 readline==6.2.4.1
 redis==2.10.1
+requests==2.4.1
 service-identity==1.0.0
-six==1.7.2
+six==1.8.0
 w3lib==1.6
 wsgiref==0.1.2
+xunleipy==0.1.1
 zope.interface==4.1.1
