@@ -117,6 +117,9 @@ class EpisodesSpider(InitSpider):
                     show_info['directors'] = directors
                 elif span == u'播出：':
                     show_info['show_type'] = li.xpath('text()').extract()[1].split('/')
+                elif span == u'简介：':
+                    show_info['show_desc'] = li.xpath('p/text()').extract()[0]
+
 
             self.redis_conn[cache_name] = json.dumps(show_info)
 
