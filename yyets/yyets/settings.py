@@ -17,10 +17,10 @@ LOG_FILE = 'scrapy.log'
 
 
 DB_SETTINGS = {'user': 'gunner',
-    'passwd': '17097448ak47',
-    'db': 'yyets',
+    'passwd': '',
+    'db': '',
     'host': '0.0.0.0',
-    'port': 30000}
+    'port': 0000}
 
 CACHE_SETTINGS = {
     'host': '127.0.0.1',
@@ -29,8 +29,8 @@ CACHE_SETTINGS = {
 }
 
 YYETS_SETTINGS = {
-    'username': 'gunnerak',
-    'password': '880420'
+    'username': '',
+    'password': ''
 }
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
