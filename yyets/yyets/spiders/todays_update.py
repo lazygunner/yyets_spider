@@ -1,8 +1,10 @@
 # encoding:utf-8
 import sys
 import os
+from datetime import datetime, timedelta
 path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(path+'/..')
+
 import json
 import redis
 from scrapy.contrib.spiders.init import InitSpider
@@ -10,15 +12,17 @@ from scrapy.http import Request, FormRequest
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.contrib.spiders import Rule
 from scrapy.selector import Selector
+
 from items import ShowIDItem
-from datetime import datetime, timedelta
+from yyets.settings import CACHE_SETTINGS, YYETS_SETTINGS
 
 class UpdateTodaySpider(InitSpider):
 
-    def __init__(self):
-        self.username = 'gunnerak'
-        self.password = '880420'
-        self.redis_conn = redis.Redis(host='127.0.0.1', port=6379, db=0)
+    def __init__(self, yesterday=False):
+        self.username = YYETS_SETTINGS['username']
+        self.password = YYETS_SETTINGS['password']
+        self.redis_conn = redis.Redis(host=CACHE_SETTINGS['host'], port=CACHE_SETTINGS['port'], db=CACHE_SETTINGS['db'])
+        self.yesterday = yesterday
 
     name = 'update_today'
     allowed_domains = ['yyets.com']
@@ -62,7 +66,7 @@ class UpdateTodaySpider(InitSpider):
             last_updated_time = datetime.strptime(last_updated_time, "%Y-%m-%d %H:%M:%S")
         else:
             last_updated_time = datetime(1900,1,1)
-        today = datetime.now()
+        today = datetime.now() - timedelta(days=1) if self.yesterday else datetime.now()
         today = datetime.strftime(today, "%02m-%02d")
         sel_string = '//tr[@channel="tv" and @day="%s"]' % today
         for tr in sel.xpath(sel_string):
@@ -75,14 +79,16 @@ class UpdateTodaySpider(InitSpider):
             if len(link) > 0:
                 link.reverse()
                 show_id = link[0]
-                if show_id not in show_list and time > last_updated_time:
-                    show_list.append(show_id)
-                    show_id_item['show_id'] = show_id
-                    print show_id
-                    print time
-                    yield show_id_item
+                if show_id not in show_list:
+                    if self.yesterday or time > last_updated_time:
+                        show_list.append(show_id)
+                        show_id_item['show_id'] = show_id
+                        print show_id
+                        print time
+                        yield show_id_item
         print latest_time
-        self.redis_conn['last_updated_time'] = latest_time
+        if not self.yesterday:
+            self.redis_conn['last_updated_time'] = latest_time
 
 
 

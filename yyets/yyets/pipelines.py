@@ -147,6 +147,15 @@ class MySQLStorePipeLine(object):
             ))
             self.conn.commit()
 
+            for cate in show_info.get('show_type', []):
+                if cate != '':
+                    try:
+                        category_query_str = """INSERT INTO shows_category (show_id, category_name) VALUES (%s, %s)"""
+                        self.cursor.execute(category_query_str, (show_id, cate))
+                        self.conn.commit()
+                    except pymysql.Error as e:
+                        continue
+
         except pymysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
 
