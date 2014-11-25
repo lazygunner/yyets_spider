@@ -1,7 +1,7 @@
 from celery import Celery
 from crawler import EpisodesCrawler, ShowInfoCrawler, ShowPicCrawler
 
-broker = 'amqp://guest@115.28.223.15//'
+broker = 'amqp://guest@shooot.me//'
 crawl_show_task = Celery('crawl_show', broker=broker)
 crawl_show_info_task = Celery('crawl_show_info', broker=broker)
 crawl_show_pic_task = Celery('crawl_show_pic', broker=broker)
