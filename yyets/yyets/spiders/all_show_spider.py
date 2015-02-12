@@ -4,13 +4,14 @@ from scrapy.selector import Selector
 from urllib2 import quote
 import json
 from yyets.items import ShowItem
+from yyets.settings import DOMAIN
 
 class AllShowSpider(Spider):
     name = "all_show"
     start_urls = []
 
     def __init__(self):
-        self.start_urls.append("http://www.yyets.com/tv/schedule")
+        self.start_urls.append(DOMAIN + "/tv/schedule")
 
     def parse(self, response):
         sel = Selector(response)

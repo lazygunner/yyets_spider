@@ -13,24 +13,22 @@ import json
 from yyets.items import YyetsItem
 import re
 import redis
-from yyets.settings import CACHE_SETTINGS, YYETS_SETTINGS
+from yyets.settings import CACHE_SETTINGS, YYETS_SETTINGS, DOMAIN
 
 class EpisodesSpider(InitSpider):
     name = "episodes"
-    allowed_domains = ["yyets.com"]
+    #allowed_domains = ["yyets.com"]
     show_name = ""
     start_urls = []
-    login_page = 'http://www.yyets.com/user/login/ajaxLogin'
+    login_page = DOMAIN + '/user/login/ajaxLogin'
 
     def __init__(self, show_id):
         self.username = YYETS_SETTINGS['username']
         self.password = YYETS_SETTINGS['password']
         self.redis_conn = redis.Redis(CACHE_SETTINGS['host'], CACHE_SETTINGS['port'], CACHE_SETTINGS['db'])
 
-        self.allowed_domains = ['yyets.com']
-
         self.show_id = quote(show_id.encode('utf-8'))
-        self.start_urls = ["http://www.yyets.com/resource/" + self.show_id]
+        self.start_urls = [DOMAIN + "/resource/" + self.show_id]
 
     rules = (
         Rule(SgmlLinkExtractor(),
@@ -41,7 +39,7 @@ class EpisodesSpider(InitSpider):
     def init_request(self):
         """Generate a login request."""
         return FormRequest(url=self.login_page,
-                 formdata={'account': self.username, 'password': self.password, 'type': 'nickname', 'remember':'0'},
+                 formdata={'account': self.username, 'password': self.password, 'remember':'0', 'from':'loginpage'},
                  callback=self.check_login_response)
 
     def check_login_response(self, response):

@@ -6,17 +6,19 @@ from scrapy.spider import Spider
 from urllib2 import quote
 import json
 
+from yyets.settings import DOMAIN
+
 
 class ShowSpider(Spider):
     name = "show"
-    allowed_domains = ["yyets.com"]
+    #allowed_domains = ["yyets.com"]
     show_name = ""
     start_urls = [
     ]
 
     def __init__(self, show_name):
         self.show_name = quote(show_name.encode('utf-8'))
-        self.start_urls.append("http://www.yyets.com/search/api?keyword=" + self.show_name)
+        self.start_urls.append(DOMAIN + "/search/api?keyword=" + self.show_name)
 
     def parse(self, response):
         result_json = json.loads(response.body)

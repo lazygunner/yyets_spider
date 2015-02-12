@@ -14,7 +14,7 @@ from scrapy.contrib.spiders import Rule
 from scrapy.selector import Selector
 
 from items import ShowIDItem
-from yyets.settings import CACHE_SETTINGS, YYETS_SETTINGS
+from yyets.settings import CACHE_SETTINGS, YYETS_SETTINGS, DOMAIN
 
 class UpdateTodaySpider(InitSpider):
 
@@ -25,9 +25,8 @@ class UpdateTodaySpider(InitSpider):
         self.yesterday = yesterday
 
     name = 'update_today'
-    allowed_domains = ['yyets.com']
-    login_page = 'http://www.yyets.com/user/login/ajaxLogin'
-    start_urls = ['http://www.yyets.com/today']
+    login_page = DOMAIN + '/user/login/ajaxLogin'
+    start_urls = [DOMAIN + '/today']
 
     rules = (
         Rule(SgmlLinkExtractor(),
@@ -39,7 +38,7 @@ class UpdateTodaySpider(InitSpider):
         print '================='
         """Generate a login request."""
         return FormRequest(url=self.login_page,
-                    formdata={'account': self.username, 'password': self.password, 'type': 'nickname', 'remember':'0'},
+                    formdata={'account': self.username, 'password': self.password, 'remember':'0', 'from':'loginpage'},
                     callback=self.check_login_response)
 
     def check_login_response(self, response):

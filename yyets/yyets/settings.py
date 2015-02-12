@@ -16,11 +16,13 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko
 LOG_FILE = 'scrapy.log'
 
 
-DB_SETTINGS = {'user': 'gunner',
-    'passwd': '',
-    'db': '',
-    'host': '0.0.0.0',
-    'port': 0000}
+DB_SETTINGS = {
+     'user': '',
+     'passwd': '',
+     'db': '',
+     'host': '',
+     'port': 1234 
+}
 
 CACHE_SETTINGS = {
     'host': '127.0.0.1',
@@ -32,6 +34,14 @@ YYETS_SETTINGS = {
     'username': '',
     'password': ''
 }
+
+XUNLEI_SETTINGS = {
+    'username': '',
+    'password': ''
+}
+
+DOMAIN = 'http://www.zimuzu.tv'
+
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'yyets (+http://www.yourdomain.com)'

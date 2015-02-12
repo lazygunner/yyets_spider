@@ -105,8 +105,8 @@ class MySQLStorePipeLine(object):
                     ON DUPLICATE KEY UPDATE ed2k_link=%s""", new_items)
                 self.conn.commit()
 
-                vod_urls = [item[5] for item in new_items]
-                print xunlei_vod.add_task_to_vod(vod_urls)
+                #vod_urls = [item[5] for item in new_items]
+                #print xunlei_vod.add_task_to_vod(vod_urls)
 
             cache_name = '%s|%s' % ('show_info', show_id)
             show_info_str = self.redis_conn.get(cache_name)
@@ -115,6 +115,7 @@ class MySQLStorePipeLine(object):
             update_str = ''
             key_str = 'show_id, created_time, updated_time'
             val_str = '%s,%s,%s'
+	    show_info = {}
             if show_info_str and show_info_str != 'None':
                 show_info = json.loads(show_info_str)
                 info_str = ''
