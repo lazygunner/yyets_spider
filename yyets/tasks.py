@@ -1,5 +1,5 @@
 from celery import Celery
-from crawler import EpisodesCrawler, ShowInfoCrawler, ShowPicCrawler
+from crawler import EpisodesCrawler
 from xunlei import XunLeiClient
 
 broker = 'amqp://guest@shooot.me//'
@@ -13,18 +13,6 @@ remote_download_task = Celery('remote_download', borker=broker)
 def crawl_show(show_id):
     ec = EpisodesCrawler()
     ec.crawl(show_id)
-
-
-@crawl_show_info_task.task
-def crawl_show_info(show_name, show_id):
-    sic = ShowInfoCrawler()
-    sic.crawl(show_name, show_id)
-
-
-@crawl_show_pic_task.task
-def crawl_show_pic(subject_id, show_id):
-    spc = ShowPicCrawler()
-    spc.crawl(subject_id, show_id)
 
 
 @remote_download_task.task

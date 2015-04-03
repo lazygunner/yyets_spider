@@ -3,8 +3,6 @@ from scrapy.crawler import Crawler
 from scrapy.conf import settings
 from yyets.spiders.episodes_spider import EpisodesSpider
 from yyets.spiders.show_spider import ShowSpider
-from douban.spiders.douban_show_info_spider import DoubanShowInfoSpider
-from douban.spiders.douban_show_pic_spider import DoubanShowPicSpider
 from scrapy import log, project, signals
 from twisted.internet import reactor
 from billiard import Process
@@ -32,24 +30,6 @@ class EpisodesCrawler(object):
 
     def crawl(self, show_id):
         spider = EpisodesSpider(show_id)
-        crawler = UrlCrawlerScript(spider)
-        crawler.start()
-        crawler.join()
-
-
-class ShowInfoCrawler(object):
-
-    def crawl(self, show_name, show_id):
-        spider = DoubanShowInfoSpider(show_name, show_id)
-        crawler = UrlCrawlerScript(spider)
-        crawler.start()
-        crawler.join()
-
-
-class ShowPicCrawler(object):
-
-    def crawl(self, subject_id, show_id):
-        spider = DoubanShowPicSpider(subject_id, show_id)
         crawler = UrlCrawlerScript(spider)
         crawler.start()
         crawler.join()

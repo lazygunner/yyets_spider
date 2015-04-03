@@ -68,10 +68,12 @@ class UpdateTodaySpider(InitSpider):
         today = datetime.now() - timedelta(days=1) if self.yesterday else datetime.now()
         today = datetime.strftime(today, "%02m-%02d")
         sel_string = '//tr[@channel="tv" and @day="%s"]' % today
+        self.log('todays update count:%d', sel.xpath(sel_string))
         for tr in sel.xpath(sel_string):
             link = tr.xpath('td[not(@class="dr_ico")]/a/@href').extract()[0]
             time = tr.xpath('td[@class="d6"]/text()').extract()[0]
             time = datetime.strptime(time, '%H:%M')
+            print 'update_time:', time
             if not latest_time:
                 latest_time = time
             link = link.split('/')
@@ -85,7 +87,7 @@ class UpdateTodaySpider(InitSpider):
                         print show_id
                         print time
                         yield show_id_item
-        print latest_time
+        print 'latest_time', latest_time
         if not self.yesterday:
             self.redis_conn['last_updated_time'] = latest_time
 
