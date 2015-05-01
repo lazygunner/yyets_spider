@@ -16,7 +16,10 @@ class AllShowSpider(Spider):
     def parse(self, response):
         sel = Selector(response)
 
-        for a in sel.xpath('//td[@class="ihbg"]/dl/dd/a'):
+        a_list = []
+        a_list.extend(sel.xpath('//td[@class="ihbg "]/dl/dd/a'))
+        a_list.extend(sel.xpath('//td[@class="ihbg cur"]/dl/dd/a'))
+        for a in a_list:
             show_item = ShowItem()
             link = a.xpath('@href').extract()[0]
             link_list = link.split('/')
@@ -25,7 +28,7 @@ class AllShowSpider(Spider):
                 show_item['show_id'] = link_list[0]
             else:
                 show_item['show_id'] = ''
-            show_item['show_name'] = a.xpath('font//text()')[0].extract()
+            show_item['show_name'] = a.xpath('@title')[0].extract()
             yield show_item
 
 

@@ -30,7 +30,7 @@ class YyetsPipeline(object):
 
 class AddToCeleryPipeLine(object):
     def process_item(self, item, spider):
-        if spider.name == 'update_today':
+        if spider.name in ['update_today', 'all_show']:
             crawl_show.delay(item['show_id'])
         return item
 
