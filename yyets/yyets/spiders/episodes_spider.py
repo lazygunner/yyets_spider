@@ -28,7 +28,7 @@ class EpisodesSpider(InitSpider):
         self.redis_conn = redis.Redis(CACHE_SETTINGS['host'], CACHE_SETTINGS['port'], CACHE_SETTINGS['db'])
 
         self.show_id = quote(show_id.encode('utf-8'))
-        self.start_urls = [DOMAIN + "/resource/" + self.show_id]
+        self.start_urls = [DOMAIN + "/resource/list/" + self.show_id]
 
     rules = (
         Rule(SgmlLinkExtractor(),
@@ -122,22 +122,21 @@ class EpisodesSpider(InitSpider):
             self.redis_conn[cache_name] = json.dumps(show_info)
 
 
-
-        for ul in sel.xpath('//ul[@class="resod_list"]'):
-            season = ul.xpath('@season').extract()
-            season = int(season[0]) if season else None
-            if season > 100:
-                continue
-            for li in ul.xpath('li[@itemid]'):
+        for ul in sel.xpath('//div[@class="media-list"]/ul'):
+            for li in ul.xpath('li[@class="clearfix"]'):
                 item = YyetsItem()
+                season = li.xpath('@season').extract()
                 episode = li.xpath('@episode').extract()
+                season = int(season[0]) if season else None
+                if season > 100:
+                    continue
+                item['season'] = season
                 item['episode'] = int(episode[0]) if episode else None
                 item['show_id'] = unicode(self.show_id)
                 fmt = li.xpath('@format').extract()
                 item['format'] = fmt[0] if fmt else None
 
-                item['season'] = season
-                ed2k = li.xpath('div/div/a[@type="ed2k"]/@href').extract()
+                ed2k = li.xpath('div[@class="fr"]/a[@type="ed2k"]/@href').extract()
                 item['ed2k_link'] = ed2k[0] if ed2k else None
                 #Correct episode if it's larger than 100
                 if item['ed2k_link']:

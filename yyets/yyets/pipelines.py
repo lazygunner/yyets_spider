@@ -14,7 +14,7 @@ from xunleipy.vod import XunLeiVod
 
 from scrapy.http import Request
 from spiders.episodes_spider import EpisodesSpider
-from tasks import crawl_show, crawl_show_info
+from tasks import crawl_show
 from .settings import DB_SETTINGS, CACHE_SETTINGS, XUNLEI_SETTINGS
 
 logging.basicConfig(filename='pipeline.log',level=logging.DEBUG)
@@ -80,6 +80,7 @@ class MySQLStorePipeLine(object):
         l_e = 0
         l_s = 0
         l_s_e = 0
+
         for i in old_episodes:
             old_epi_dict[i[0]] = i[1]
         for item in self.items:
@@ -115,7 +116,7 @@ class MySQLStorePipeLine(object):
             update_str = ''
             key_str = 'show_id, created_time, updated_time'
             val_str = '%s,%s,%s'
-	    show_info = {}
+            show_info = {}
             if show_info_str and show_info_str != 'None':
                 show_info = json.loads(show_info_str)
                 info_str = ''
@@ -125,15 +126,18 @@ class MySQLStorePipeLine(object):
                         for v in value:
                             value_str += '%s ' % v
                     else:
-                        value_str = value
+                        value_str = value.replace('"', '""')
                     info_str += ',%s="%s"' % (key, value_str)
                     key_str += ',%s' % key
                     val_str += ',"%s"' %value_str
                 update_str += info_str
 
+            if l_e or l_s:
+                update_str = u', latest_season={0}, latest_episode={1}{2}'.format(l_s, l_e, update_str)
+
             query_str = """INSERT INTO shows (""" + key_str +\
                     """) VALUES (""" + val_str +\
-                    """) ON DUPLICATE KEY UPDATE updated_time=%s, latest_season=%s, latest_episode=%s""" + update_str
+                    """) ON DUPLICATE KEY UPDATE updated_time=%s""" + update_str
 
             print 'query str:%s' % query_str
             now = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"),
@@ -143,8 +147,6 @@ class MySQLStorePipeLine(object):
                 now,
                 now,
                 now,
-                l_s,
-                l_e
             ))
             self.conn.commit()
 
@@ -159,6 +161,8 @@ class MySQLStorePipeLine(object):
 
         except pymysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
+        except Exception as e:
+            print e
 
     def _handle_all_show(self):
         shows = []
