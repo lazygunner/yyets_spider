@@ -13,6 +13,7 @@ import json
 from yyets.items import YyetsItem
 import re
 import redis
+import requests
 from yyets.settings import CACHE_SETTINGS, YYETS_SETTINGS, DOMAIN
 
 class EpisodesSpider(InitSpider):
@@ -29,6 +30,8 @@ class EpisodesSpider(InitSpider):
 
         self.show_id = quote(show_id.encode('utf-8'))
         self.start_urls = [DOMAIN + "/resource/list/" + self.show_id]
+        self.resource_url = DOMAIN + "/resource/" + self.show_id
+        self.cache_name = "%s|%s" % ('show_info', self.show_id)
 
     rules = (
         Rule(SgmlLinkExtractor(),
@@ -51,10 +54,74 @@ class EpisodesSpider(InitSpider):
             self.log("Successfully logged in. Let's start crawling!")
              # Now the crawling can begin..
             print self.start_urls
-            return Request(url=self.start_urls[0], callback=self.parse_items)
+            show_info = self.redis_conn.get(self.cache_name)
+
+            try:
+                show_info = json.loads(show_info)
+            except:
+                show_info = {}
+            if not show_info or show_info == 'None':
+                return Request(url=self.resource_url, callback=self._crawl_show_info)
+            else:
+                return Request(url=self.start_urls[0], callback=self.parse_items)
         else:
             self.log("%s", rsp['info'])
              # Something went wrong, we couldn't log in, so nothing happens.
+
+    def _crawl_show_info(self, response):
+        sel = Selector(response)
+        show_info = {}
+        tmp_show_name = sel.xpath('//h2[@class="resource-tit"]/text()').extract()
+        if len(tmp_show_name) > 0:
+            snp = re.compile(u'\u300a(.*?)\u300b', re.UNICODE)
+            tmp_name = snp.findall(tmp_show_name[0])
+            if len(tmp_name) > 0:
+                show_info['show_name'] = tmp_name[0]
+            else:
+                show_info['show_name'] = tmp_show_name[0]
+        for li in sel.xpath('//div[@class="fl-info"]/ul/li'):
+            spans = li.xpath('strong/span/text()').extract()
+            if len(spans) > 0:
+                span = spans[0]
+            else:
+                continue
+            if span == u'英文：':
+                strongs = li.xpath('strong/text()').extract()
+                strong = strongs[0] if strongs else ''
+                show_info['english_name'] = strong
+            elif span == u'别名：':
+                show_info['other_name'] = li.xpath('text()').extract()[0].strip(' ')
+            elif span == u'編劇：':
+                writers = []
+                hrefs = li.xpath('a')
+                for href in hrefs:
+                    h = href.xpath('@href').extract()[0]
+                    name = href.xpath('text()').extract()[0]
+                    writers.append(name)
+                show_info['writers'] = writers
+            elif span == u'主演：':
+                actors = []
+                hrefs = li.xpath('a')
+                for href in hrefs:
+                    h = href.xpath('@href').extract()[0]
+                    name = href.xpath('text()').extract()[0]
+                    actors.append(name)
+                show_info['actors'] = actors
+            elif span == u'导演：':
+                directors = []
+                hrefs = li.xpath('a')
+                for href in hrefs:
+                    h = href.xpath('@href').extract()[0]
+                    name = href.xpath('text()').extract()[0]
+                    directors.append(name)
+                show_info['directors'] = directors
+            elif span == u'類     型：':
+                show_info['show_type'] = li.xpath('text()').extract()[1].split('/')
+            elif span == u'简介：':
+                show_info['show_desc'] = li.xpath('p/text()').extract()[0]
+
+        self.redis_conn[self.cache_name] = json.dumps(show_info)
+        return Request(url=self.start_urls[0], callback=self.parse_items)
 
     def parse_items(self, response):
         #parse the episodes info
@@ -64,64 +131,6 @@ class EpisodesSpider(InitSpider):
         p = re.compile(r'\.[sS](\d*)[eE](\d*)\.')
         sel = Selector(response)
 
-        cache_name = "%s|%s" % ('show_info', self.show_id)
-        show_info = self.redis_conn.get(cache_name)
-        if not show_info or show_info == 'None':
-
-            show_info = {}
-            tmp_show_name = sel.xpath('//h2[@class="tv"]/strong/text()').extract()
-            if len(tmp_show_name) > 0:
-                snp = re.compile(u'\u300a(.*?)\u300b', re.UNICODE)
-                tmp_name = snp.findall(tmp_show_name[0])
-                if len(tmp_name) > 0:
-                    show_info['show_name'] = tmp_name[0]
-                else:
-                    show_info['show_name'] = tmp_show_name[0]
-            for li in sel.xpath('//ul[@class="r_d_info"]/li'):
-                spans = li.xpath('span/text()').extract()
-                if len(spans) > 0:
-                    span = spans[0]
-                else:
-                    continue
-                if span == u'英文：':
-                    strongs = li.xpath('strong/text()').extract()
-                    strong = strongs[0] if strongs else ''
-                    show_info['english_name'] = strong
-                elif span == u'别名：':
-                    show_info['other_name'] = li.xpath('text()').extract()[0].strip(' ')
-                elif span == u'编剧：':
-                    writers = []
-                    hrefs = li.xpath('a')
-                    for href in hrefs:
-                        h = href.xpath('@href').extract()[0]
-                        name = href.xpath('text()').extract()[0]
-                        writers.append(name)
-                    show_info['writers'] = writers
-                elif span == u'主演：':
-                    actors = []
-                    hrefs = li.xpath('a')
-                    for href in hrefs:
-                        h = href.xpath('@href').extract()[0]
-                        name = href.xpath('text()').extract()[0]
-                        actors.append(name)
-                    show_info['actors'] = actors
-                elif span == u'导演：':
-                    directors = []
-                    hrefs = li.xpath('a')
-                    for href in hrefs:
-                        h = href.xpath('@href').extract()[0]
-                        name = href.xpath('text()').extract()[0]
-                        directors.append(name)
-                    show_info['directors'] = directors
-                elif span == u'播出：':
-                    show_info['show_type'] = li.xpath('text()').extract()[1].split('/')
-                elif span == u'简介：':
-                    show_info['show_desc'] = li.xpath('p/text()').extract()[0]
-
-
-            self.redis_conn[cache_name] = json.dumps(show_info)
-
-
         for ul in sel.xpath('//div[@class="media-list"]/ul'):
             for li in ul.xpath('li[@class="clearfix"]'):
                 item = YyetsItem()
@@ -129,7 +138,11 @@ class EpisodesSpider(InitSpider):
                 episode = li.xpath('@episode').extract()
                 season = int(season[0]) if season else None
                 if season > 100:
-                    continue
+                    # example show_id = 33702
+                    if season == 102:
+                        season = 1
+                    else:
+                        continue
                 item['season'] = season
                 item['episode'] = int(episode[0]) if episode else None
                 item['show_id'] = unicode(self.show_id)

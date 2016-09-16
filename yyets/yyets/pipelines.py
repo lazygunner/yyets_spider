@@ -10,7 +10,6 @@ from datetime import datetime
 
 import pymysql
 import redis
-from xunleipy.vod import XunLeiVod
 
 from scrapy.http import Request
 from spiders.episodes_spider import EpisodesSpider
@@ -18,9 +17,6 @@ from tasks import crawl_show
 from .settings import DB_SETTINGS, CACHE_SETTINGS, XUNLEI_SETTINGS
 
 logging.basicConfig(filename='pipeline.log',level=logging.DEBUG)
-
-xunlei_vod = XunLeiVod(XUNLEI_SETTINGS['username'], XUNLEI_SETTINGS['password'])
-print 'xunlei_session:', xunlei_vod.session.cookies.get('sessionid')
 
 class YyetsPipeline(object):
 
